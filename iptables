@@ -1,0 +1,28 @@
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT ACCEPT [0:0]
+
+# --- Regras de Sistema ---
+-A INPUT -i lo -j ACCEPT -m comment --comment "Interface Loopback Local"
+-A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT -m comment --comment "Conexoes Estabelecidas"
+-A INPUT -p icmp -m icmp --icmp-type 8 -j ACCEPT -m comment --comment "Ping ICMP"
+
+# --- Acesso SSH ---
+-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT -m comment --comment "Acesso SSH Admin"
+
+# --- Telefonia Asterisk ---
+# SIP
+-A INPUT -p udp -m udp --dport 5060 -j ACCEPT -m comment --comment "SIP UDP 5060 Padrão"
+-A INPUT -p tcp -m tcp --dport 5060 -j ACCEPT -m comment --comment "SIP TCP 5060 Padrão"
+-A INPUT -p tcp -m tcp --dport 5063 -j ACCEPT -m comment --comment "SIP TCP 5063 (Custom)"
+# RTP
+-A INPUT -p udp -m udp --dport 10000:20000 -j ACCEPT -m comment --comment "RTP Audio Range"
+# IAX2
+-A INPUT -p udp -m udp --dport 4569 -j ACCEPT -m comment --comment "IAX2 Troncos"
+
+# --- Banco de Dados (Rede Local) ---
+-A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 5432 -j ACCEPT -m comment --comment "PostgreSQL (Rede Local)"
+-A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 27017 -j ACCEPT -m comment --comment "MongoDB (Rede Local)"
+
+COMMIT
