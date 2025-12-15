@@ -25,4 +25,9 @@
 -A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 5432 -j ACCEPT -m comment --comment "PostgreSQL (Rede Local)"
 -A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 27017 -j ACCEPT -m comment --comment "MongoDB (Rede Local)"
 
+# --- Web Server / Node.js ---
+-A INPUT -p tcp -m tcp --dport 80 -j ACCEPT -m comment --comment "HTTP Web"
+-A INPUT -p tcp -m tcp --dport 443 -j ACCEPT -m comment --comment "HTTPS Web"
+-A INPUT -p tcp -m tcp --dport 3000 -j ACCEPT -m comment --comment "Aplicacao Node.js"
+
 COMMIT
