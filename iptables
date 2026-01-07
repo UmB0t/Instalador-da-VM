@@ -22,12 +22,13 @@
 -A INPUT -p udp -m udp --dport 4569 -j ACCEPT -m comment --comment "IAX2 Troncos"
 
 # --- Banco de Dados (Rede Local) ---
+# Libera apenas para a subnet local (ajuste o IP se sua rede for diferente de 192.168.1.0/24)
 -A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 5432 -j ACCEPT -m comment --comment "PostgreSQL (Rede Local)"
--A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 27017 -j ACCEPT -m comment --comment "MongoDB (Rede Local)"
+-A INPUT -s 192.168.1.0/24 -p tcp -m tcp --dport 29017 -j ACCEPT -m comment --comment "MongoDB Seguro (Rede Local)"
 
-# --- Web Server / Node.js ---
+# --- Web Server / App Python ---
 -A INPUT -p tcp -m tcp --dport 80 -j ACCEPT -m comment --comment "HTTP Web"
 -A INPUT -p tcp -m tcp --dport 443 -j ACCEPT -m comment --comment "HTTPS Web"
--A INPUT -p tcp -m tcp --dport 3000 -j ACCEPT -m comment --comment "Aplicacao Node.js"
+-A INPUT -p tcp -m tcp --dport 8080 -j ACCEPT -m comment --comment "Aplicacao Python (Antiga 3000)"
 
 COMMIT
