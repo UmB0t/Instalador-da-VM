@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-7">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar para Configurações">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h3 class="mb-0" style="color: #455a64;"><i class="fas fa-users"></i> Filas de Atendimento</h3>
+            </div>
+            
+            <div class="input-group shadow-sm" style="width: 200px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Buscar fila..." onkeyup="filtrarTabela()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaDados">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3 ps-4">Nome</th>
+                                <th class="py-3">Estratégia</th>
+                                <th class="py-3 text-center">Tempo Limite</th>
+                                <th class="py-3 text-center">Habilitado</th> <th class="py-3 text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for f in filas %}
+                            <tr class="{% if not f.status %}text-muted{% endif %}" style="transition: all 0.2s;">
+                                <td class="py-3 ps-4">
+                                    <div class="fw-bold {% if f.status %}text-dark{% endif %}">{{ f.name }}</div>
+                                    <div class="small text-muted">{{ f.description }}</div>
+                                </td>
+                                <td class="py-3"><span class="badge bg-light text-dark border">{{ f.strategy }}</span></td>
+                                <td class="py-3 text-center">{{ f.timeout }}s</td>
+                                
+                                <td class="py-3 text-center">
+                                    <div class="form-check form-switch d-flex justify-content-center">
+                                        <input class="form-check-input shadow-none" type="checkbox" role="switch" 
+                                               id="switch_{{ f.id }}"
+                                               onchange="toggleFila('{{ url_for('filas.alternar_status', id=f.id) }}')"
+                                               {% if f.status %}checked{% endif %}
+                                               style="cursor: pointer; transform: scale(1.3);">
+                                    </div>
+                                </td>
+                                
+                                <td class="py-3 text-end pe-4">
+                                    <a href="{{ url_for('filas.editar', id=f.id) }}" class="btn btn-sm text-primary border-0 shadow-sm bg-light" 
+                                       title="Editar">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white pt-3 border-0">
+                <h5 class="fw-bold" style="color: #455a64;">
+                    {% if edit_obj %} <i class="fas fa-edit"></i> Editar Fila {% else %} <i class="fas fa-plus-circle"></i> Nova Fila {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{% if edit_obj %}{{ url_for('filas.salvar_edicao') }}{% else %}{{ url_for('filas.index') }}{% endif %}" method="POST">
+                    {% if edit_obj %} <input type="hidden" name="id_fila" value="{{ edit_obj.id }}"> {% endif %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Nome da Fila</label>
+                            <input type="text" class="form-control" name="name" 
+                                   value="{{ edit_obj.name if edit_obj else '' }}" 
+                                   {% if edit_obj %}disabled{% else %}required{% endif %} placeholder="Ex: Suporte">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Descrição</label>
+                            <input type="text" class="form-control" name="description" value="{{ edit_obj.description if edit_obj else '' }}" placeholder="Ex: Fila N1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Estratégia de Toque</label>
+                        <select class="form-select" name="strategy">
+                            <option value="rrmemory" {% if edit_obj and edit_obj.strategy == 'rrmemory' %}selected{% endif %}>RR Memory (Circular)</option>
+                            <option value="ringall" {% if edit_obj and edit_obj.strategy == 'ringall' %}selected{% endif %}>Ring All (Tocar Todos)</option>
+                            <option value="leastrecent" {% if edit_obj and edit_obj.strategy == 'leastrecent' %}selected{% endif %}>Least Recent (Menos Recente)</option>
+                            <option value="fewestcalls" {% if edit_obj and edit_obj.strategy == 'fewestcalls' %}selected{% endif %}>Fewest Calls (Menos Chamadas)</option>
+                            <option value="random" {% if edit_obj and edit_obj.strategy == 'random' %}selected{% endif %}>Random (Aleatório)</option>
+                        </select>
+                    </div>
+
+                    <h6 class="text-muted mt-4 border-bottom pb-2">Tempos e Limites</h6>
+                    <div class="row mb-2">
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Tempo Limite (Timeout)</label>
+                            <input type="number" class="form-control form-control-sm" name="timeout" value="{{ edit_obj.timeout if edit_obj else '15' }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Retentativa (Retry)</label>
+                            <input type="number" class="form-control form-control-sm" name="retry" value="{{ edit_obj.retry if edit_obj else '5' }}">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small fw-bold">Pausa Pós (WrapUp)</label>
+                            <input type="number" class="form-control form-control-sm" name="wrapuptime" value="{{ edit_obj.wrapuptime if edit_obj else '0' }}">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Máx. Fila (0=Inf)</label>
+                            <input type="number" class="form-control form-control-sm" name="maxlen" value="{{ edit_obj.maxlen if edit_obj else '0' }}">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Música de Espera</label>
+                            <input type="text" class="form-control form-control-sm" name="musiconhold" value="{{ edit_obj.musiconhold if edit_obj else 'default' }}">
+                        </div>
+                    </div>
+
+                    <h6 class="text-muted mt-4 border-bottom pb-2">Comportamento</h6>
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Entrar Vazia?</label>
+                            <select class="form-select form-select-sm" name="joinempty">
+                                <option value="yes" {% if edit_obj and edit_obj.joinempty == 'yes' %}selected{% endif %}>Sim (Yes)</option>
+                                <option value="no" {% if edit_obj and edit_obj.joinempty == 'no' %}selected{% endif %}>Não (No)</option>
+                                <option value="strict" {% if edit_obj and edit_obj.joinempty == 'strict' %}selected{% endif %}>Estrito</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Sair se Vazia?</label>
+                            <select class="form-select form-select-sm" name="leavewhenempty">
+                                <option value="no" {% if edit_obj and edit_obj.leavewhenempty == 'no' %}selected{% endif %}>Não (No)</option>
+                                <option value="yes" {% if edit_obj and edit_obj.leavewhenempty == 'yes' %}selected{% endif %}>Sim (Yes)</option>
+                                <option value="strict" {% if edit_obj and edit_obj.leavewhenempty == 'strict' %}selected{% endif %}>Estrito</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn text-white" style="background-color: #455a64;">Salvar Fila</button>
+                        {% if edit_obj %}
+                            <a href="{{ url_for('filas.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleFila(url) {
+        // Redireciona imediatamente para a rota que inverte o status
+        window.location.href = url;
+    }
+
+    function filtrarTabela() {
+        var input = document.getElementById("searchInput");
+        var filtro = input.value.toUpperCase();
+        var tabela = document.getElementById("tabelaDados");
+        var tr = tabela.getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            var linha = tr[i];
+            var texto = linha.textContent || linha.innerText;
+            if (texto.toUpperCase().indexOf(filtro) > -1) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}
