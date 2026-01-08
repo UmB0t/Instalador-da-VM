@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-white pt-4 pb-0 border-0">
+                <h4 style="color: #C2185B;"><i class="fas fa-lock"></i> Alterar Senha</h4>
+                <p class="text-muted small">Defina uma nova senha para o seu acesso.</p>
+            </div>
+            <div class="card-body p-4">
+                <form action="/alterar_senha" method="POST">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nova Senha</label>
+                        <input type="password" class="form-control" name="nova_senha" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Confirmar Nova Senha</label>
+                        <input type="password" class="form-control" name="confirmar_senha" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn text-white" style="background-color: #C2185B;">
+                            Salvar Nova Senha
+                        </button>
+                        <a href="/" class="btn btn-outline-secondary">Cancelar</a>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
