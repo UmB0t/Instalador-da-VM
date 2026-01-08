@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Estilo para Paginação Arredondada e Centralizada */
+    .pagination-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-top: 10px;
+    }
+
+    .pagination-round .page-item {
+        margin: 0 3px;
+    }
+
+    .pagination-round .page-link {
+        border-radius: 50% !important;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dee2e6;
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+
+    .pagination-round .page-link:hover {
+        background-color: #e9ecef;
+        color: #455a64;
+        text-decoration: none;
+    }
+
+    .pagination-round .page-item.active .page-link {
+        background-color: #198754; /* Verde (Tema do sistema) */
+        border-color: #198754;
+        color: white;
+        box-shadow: 0 2px 4px rgba(25, 135, 84, 0.3);
+    }
+
+    .pagination-round .page-item.disabled .page-link {
+        background-color: #f8f9fa;
+        color: #adb5bd;
+        border-color: #dee2e6;
+    }
+
+    /* Setinhas de navegação */
+    .nav-arrow {
+        border-radius: 50% !important;
+        width: 35px;
+        height: 35px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white pt-4 border-0">
+        <div class="d-flex justify-content-between align-items-center">
+            <h3 style="color: #455a64;"><i class="fas fa-list-alt"></i> Relatório de Chamadas</h3>
+            <div class="d-flex gap-2">
+                <select class="form-select form-select-sm shadow-sm" style="width: 120px;" onchange="mudarQtd(this.value)">
+                    <option value="10" {% if per_page == 10 %}selected{% endif %}>10 linhas</option>
+                    <option value="25" {% if per_page == 25 %}selected{% endif %}>25 linhas</option>
+                    <option value="50" {% if per_page == 50 %}selected{% endif %}>50 linhas</option>
+                    <option value="100" {% if per_page == 100 %}selected{% endif %}>100 linhas</option>
+                </select>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                    <i class="fas fa-print"></i> Imprimir
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('relatorios.index') }}" id="filtroForm">
+            <input type="hidden" name="page" value="1" id="pageInput">
+            <input type="hidden" name="per_page" value="{{ per_page }}" id="perPageInput">
+
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Data Início</label>
+                    <input type="date" class="form-control" name="data_inicio" value="{{ data_inicio }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Data Fim</label>
+                    <input type="date" class="form-control" name="data_fim" value="{{ data_fim }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Tipo de Ligação</label>
+                    <select name="filtro_tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ENTRADA" {% if filtro_tipo == 'ENTRADA' %}selected{% endif %}>Entrada</option>
+                        <option value="SAIDA" {% if filtro_tipo == 'SAIDA' %}selected{% endif %}>Saída</option>
+                        <option value="INTERNA" {% if filtro_tipo == 'INTERNA' %}selected{% endif %}>Interna</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Status</label>
+                    <select name="filtro_status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="ANSWERED" {% if filtro_status == 'ANSWERED' %}selected{% endif %}>Atendida</option>
+                        <option value="NO ANSWER" {% if filtro_status == 'NO ANSWER' %}selected{% endif %}>Não Atendida</option>
+                        <option value="BUSY" {% if filtro_status == 'BUSY' %}selected{% endif %}>Ocupado</option>
+                        <option value="FAILED" {% if filtro_status == 'FAILED' %}selected{% endif %}>Falha</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Fila</label>
+                    <select class="form-select" name="fila">
+                        <option value="">Todas</option>
+                        {% for f in filas %}
+                            <option value="{{ f.id }}" {% if request.values.get('fila') == f.id|string %}selected{% endif %}>{{ f.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Origem</label>
+                    <input type="text" class="form-control" name="origem" placeholder="Ex: 1001" value="{{ request.values.get('origem', '') }}">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Destino</label>
+                    <input type="text" class="form-control" name="destino" placeholder="Ex: 9999..." value="{{ request.values.get('destino', '') }}">
+                </div>
+
+                <div class="col-md-2">
+                    <div class="d-grid">
+                        <button type="submit" class="btn text-white" style="background-color: #455a64;">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 fw-bold text-muted">
+            <i class="fas fa-list"></i> Listagem 
+            <span class="badge bg-light text-dark border ms-2">Total: {{ total_registros }}</span>
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 table-striped text-nowrap">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">Data de Início</th>
+                        <th>Data de Atendimento</th>
+                        <th>Data de Fim</th>
+                        <th class="text-center">Status</th>
+                        <th class="text-center">Origem</th>
+                        <th>Destino</th>
+                        <th>Fila</th>
+                        <th class="text-center">Tipo</th>
+                        <th class="text-center">Tempo Total</th>
+                        <th class="text-center">Tempo Falado</th>
+                        <th class="text-center pe-4">Gravação</th> 
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if relatorio %}
+                        {% for r in relatorio %}
+                        <tr>
+                            <td class="ps-4 text-dark" style="font-size: 0.9rem;">{{ r.inicio }}</td>
+                            <td class="small text-muted">{{ r.atendimento }}</td>
+                            <td class="small text-muted">{{ r.fim }}</td>
+                            <td class="text-center">
+                                {% if r.status == 'Atendida' %}
+                                    <span class="badge bg-success">Atendida</span>
+                                {% elif r.status == 'Não Atendida' %}
+                                    <span class="badge bg-danger">Não Atendida</span>
+                                {% elif r.status == 'Ocupado' %}
+                                    <span class="badge bg-warning text-dark">Ocupado</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ r.origem }}</td>
+                            <td>{{ r.destino }}</td>
+                            <td>{{ r.fila }}</td>
+                            <td class="text-center">{{ r.tipo }}</td>
+                            
+                            <td class="text-center">{{ r.duracao_total }}</td>
+                            
+                            <td class="text-center">{{ r.duracao_falada }}</td>
+                            
+                            <td class="text-center pe-4">
+                                {% if r.uniqueid and r.status == 'Atendida' %}
+                                    <div class="btn-group" role="group">
+                                        <button type="button" 
+                                                class="btn btn-sm btn-outline-info border-0" 
+                                                title="Ouvir Gravação"
+                                                onclick="ouvirGravacao('{{ url_for('relatorios.stream_gravacao', uniqueid=r.uniqueid) }}')">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        
+                                        <a href="{{ url_for('relatorios.baixar_gravacao', uniqueid=r.uniqueid) }}" 
+                                           class="btn btn-sm btn-outline-primary border-0" 
+                                           title="Baixar Gravação">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted small">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="11" class="text-center py-5 text-muted">
+                                <i class="fas fa-search fa-3x mb-3 opacity-25"></i>
+                                <p class="mb-0">Nenhum registro encontrado.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card-footer bg-white py-4">
+        <div class="pagination-container">
+            <nav aria-label="Navegação">
+                <ul class="pagination pagination-round mb-0">
+                    
+                    <li class="page-item {% if page == 1 %}disabled{% endif %}">
+                        <button class="page-link nav-arrow" onclick="mudarPagina({{ page - 1 }})" title="Anterior">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                    </li>
+
+                    {% if total_pages > 1 %}
+                        <li class="page-item {% if page == 1 %}active{% endif %}">
+                            <button class="page-link" onclick="mudarPagina(1)">1</button>
+                        </li>
+
+                        {% if page > 4 %}
+                            <li class="page-item disabled"><span class="page-link border-0">...</span></li>
+                        {% endif %}
+
+                        {% for p in range(page - 2, page + 3) %}
+                            {% if p > 1 and p < total_pages %}
+                                <li class="page-item {% if p == page %}active{% endif %}">
+                                    <button class="page-link" onclick="mudarPagina({{ p }})">{{ p }}</button>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if page < total_pages - 3 %}
+                            <li class="page-item disabled"><span class="page-link border-0">...</span></li>
+                        {% endif %}
+
+                        <li class="page-item {% if page == total_pages %}active{% endif %}">
+                            <button class="page-link" onclick="mudarPagina({{ total_pages }})">{{ total_pages }}</button>
+                        </li>
+                    {% endif %}
+
+                    <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+                        <button class="page-link nav-arrow" onclick="mudarPagina({{ page + 1 }})" title="Próximo">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </li>
+
+                </ul>
+            </nav>
+            
+            <div class="mt-2 text-muted small">
+                Página {{ page }} de {{ total_pages }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalAudio" tabindex="-1" aria-labelledby="modalAudioLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="modalAudioLabel"><i class="fas fa-volume-up"></i> Reproduzir Gravação</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center p-4">
+        <audio id="playerAudio" controls style="width: 100%;">
+            <source src="" type="audio/mpeg">
+            Seu navegador não suporta o elemento de áudio.
+        </audio>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+    function mudarQtd(qtd) {
+        document.getElementById('perPageInput').value = qtd;
+        document.getElementById('pageInput').value = 1; 
+        document.getElementById('filtroForm').submit();
+    }
+
+    function mudarPagina(pag) {
+        if (pag < 1) return;
+        document.getElementById('pageInput').value = pag;
+        document.getElementById('filtroForm').submit();
+    }
+
+    // Função de Reprodução
+    function ouvirGravacao(url) {
+        var player = document.getElementById('playerAudio');
+        player.src = url;
+        
+        var myModal = new bootstrap.Modal(document.getElementById('modalAudio'), {});
+        myModal.show();
+        
+        player.volume = 0.7; // Volume inicial 70%
+        
+        player.play().catch(function(error) {
+           console.log("Erro na reprodução automática: " + error);
+        });
+        
+        var modalEl = document.getElementById('modalAudio');
+        modalEl.addEventListener('hidden.bs.modal', function (event) {
+            player.pause();
+            player.currentTime = 0;
+            player.src = ""; // Stop buffer
+        });
+    }
+</script>
+{% endblock %}
