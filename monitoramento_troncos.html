@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 style="color: #455a64;"><i class="fas fa-network-wired"></i> Monitoramento de Troncos</h3>
+    
+    <div class="d-flex align-items-center">
+        <span class="badge bg-light text-dark border me-2" id="statusConnection">
+            <i class="fas fa-circle text-success small me-1"></i> Sistema Online
+        </span>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4 border-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-0">TOTAL</h6>
+                        <h2 class="mb-0 fw-bold" id="count-total">{{ resumo.total }}</h2>
+                    </div>
+                    <i class="fas fa-server fa-2x text-primary opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4 border-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-0">ONLINE</h6>
+                        <h2 class="mb-0 fw-bold text-success" id="count-online">{{ resumo.online }}</h2>
+                    </div>
+                    <i class="fas fa-check-circle fa-2x text-success opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm border-start border-4 border-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-0">OFFLINE</h6>
+                        <h2 class="mb-0 fw-bold text-danger" id="count-offline">{{ resumo.offline }}</h2>
+                    </div>
+                    <i class="fas fa-times-circle fa-2x text-danger opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3" id="gridTroncos">
+    {% for t in troncos %}
+    <div class="col-md-3 col-sm-6 trunk-card-wrapper" id="card-{{ t.name }}">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body position-relative">
+                
+                <div class="position-absolute top-0 end-0 mt-3 me-3">
+                    <span class="badge rounded-pill bg-{{ t.color }} status-badge">
+                        {{ t.status }}
+                    </span>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-1 trunk-name">{{ t.name }}</h5>
+                <span class="badge bg-light text-dark border mb-3 trunk-tech">{{ t.technology }}</span>
+
+                <div class="d-flex align-items-center text-muted small mb-1">
+                    <i class="fas fa-globe me-2" style="width: 15px;"></i> <span class="trunk-host">{{ t.host }}</span>
+                </div>
+                
+                <div class="d-flex align-items-center text-muted small mb-3">
+                    <i class="fas fa-tachometer-alt me-2" style="width: 15px;"></i> 
+                    <span class="trunk-latency fw-bold">{{ t.latency }}</span>
+                </div>
+
+                <div class="mt-3 pt-3 border-top">
+                    <div class="text-muted small text-uppercase fw-bold" style="font-size: 0.65rem;">Tempo no Status:</div>
+                    <div class="fw-bold fs-5 text-dark trunk-timer">00:00:00</div>
+                    <input type="hidden" class="trunk-iso" value="{{ t.last_update_iso }}">
+                    
+                    <small class="text-muted d-block mt-1" style="font-size: 0.70rem;">
+                        <i class="far fa-calendar-alt me-1"></i> <span class="trunk-update">{{ t.last_update }}</span>
+                    </small>
+                </div>
+
+            </div>
+            <div class="card-footer p-0 border-0" style="height: 4px; background-color: var(--bs-{{ t.color }});"></div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    // --- ATUALIZAÇÃO DE DADOS (AJAX) ---
+    function updateDashboard() {
+        fetch('/admin/api/troncos_tempo_real')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('count-total').innerText = data.resumo.total;
+                document.getElementById('count-online').innerText = data.resumo.online;
+                document.getElementById('count-offline').innerText = data.resumo.offline;
+
+                data.troncos.forEach(t => {
+                    let card = document.getElementById('card-' + t.name);
+                    if (!card) { location.reload(); return; }
+
+                    // Atualiza Status e Cores
+                    let badge = card.querySelector('.status-badge');
+                    badge.className = `badge rounded-pill bg-${t.color} status-badge`;
+                    badge.innerText = t.status;
+                    
+                    card.querySelector('.trunk-latency').innerText = t.latency;
+                    card.querySelector('.trunk-update').innerText = t.last_update;
+                    
+                    // Atualiza a data ISO oculta (se mudou, o timer reinicia sozinho)
+                    let inputIso = card.querySelector('.trunk-iso');
+                    if (inputIso.value !== t.last_update_iso && t.last_update_iso !== null) {
+                        inputIso.value = t.last_update_iso;
+                    }
+
+                    let footer = card.querySelector('.card-footer');
+                    footer.style.backgroundColor = getBootstrapColor(t.color);
+                });
+            })
+            .catch(err => console.error('Erro sync:', err));
+    }
+
+    // --- LÓGICA DO CRONÔMETRO ---
+    function updateTimers() {
+        document.querySelectorAll('.trunk-card-wrapper').forEach(card => {
+            let isoDate = card.querySelector('.trunk-iso').value;
+            let timerDisplay = card.querySelector('.trunk-timer');
+
+            if (!isoDate || isoDate === 'None' || isoDate === '') {
+                timerDisplay.innerText = "--:--:--";
+                return;
+            }
+
+            let lastUpdate = new Date(isoDate);
+            let now = new Date();
+            let diff = Math.floor((now - lastUpdate) / 1000); // Diferença em segundos
+
+            if (diff < 0) diff = 0; // Evita tempos negativos se relógios divergirem
+
+            let hours = Math.floor(diff / 3600);
+            let minutes = Math.floor((diff % 3600) / 60);
+            let seconds = diff % 60;
+
+            // Formata para 00:00:00
+            let str = 
+                (hours < 10 ? "0" + hours : hours) + ":" +
+                (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                (seconds < 10 ? "0" + seconds : seconds);
+
+            timerDisplay.innerText = str;
+        });
+    }
+
+    function getBootstrapColor(name) {
+        const colors = { 'success': '#198754', 'danger': '#dc3545', 'warning': '#ffc107', 'secondary': '#6c757d' };
+        return colors[name] || '#6c757d';
+    }
+
+    // Inicia os ciclos
+    setInterval(updateDashboard, 2000); // Busca dados novos a cada 2s
+    setInterval(updateTimers, 1000);    // Atualiza o relógio a cada 1s
+    updateTimers(); // Roda imediatamente ao carregar
+</script>
+{% endblock %}
