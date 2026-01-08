@@ -1,19 +1,18 @@
 services:
   mongo_seguro:
     image: mongo:latest
-    container_name: mongo_seguro
+    container_name: mongo_web
     restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: suasenha123
+      MONGO_INITDB_ROOT_PASSWORD: "@Sam62dan"
     ports:
-      - "27017:27017"
+      - "29017:27017"
     volumes:
       - ./data:/data/db
     networks:
       - rede_mongo_fixa
 
-# AQUI ESTÁ A CORREÇÃO (O PULO DO GATO):
 networks:
   rede_mongo_fixa:
     driver: bridge
