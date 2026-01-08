@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm border-primary">
+            <div class="card-header bg-primary text-white pt-4 pb-2">
+                <h4><i class="fas fa-edit"></i> Edição em Massa</h4>
+                <p class="mb-2">Editando <strong>{{ ids|length }}</strong> ramais selecionados.</p>
+            </div>
+            <div class="card-body p-4">
+                
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle"></i> <strong>Atenção:</strong> Deixe em branco ou "Não Alterar" os campos que deseja manter como estão.
+                </div>
+
+                <form action="/salvar_edicao_massa" method="POST">
+                    
+                    {% for id in ids %}
+                        <input type="hidden" name="ids" value="{{ id }}">
+                    {% endfor %}
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tecnologia</label>
+                            <select class="form-select" name="technology">
+                                <option value="">-- Manter Atual --</option>
+                                <option value="PJSIP">Mudar todos para PJSIP</option>
+                                <option value="SIP">Mudar todos para SIP</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Padrão de Senha</label>
+                            <input type="text" class="form-control" name="secret_pattern" placeholder="Ex: NovaSenha@{ramal}">
+                            <div class="form-text small">Deixe vazio para não mudar as senhas. Use <code>{ramal}</code> para incluir o número.</div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Contexto</label>
+                            <select class="form-select" name="context_id">
+                                <option value="">-- Manter Atual --</option>
+                                {% for ctx in contexts %}
+                                    <option value="{{ ctx[0] }}">{{ ctx[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Setor</label>
+                            <select class="form-select" name="sectors_id">
+                                <option value="">-- Manter Atual --</option>
+                                {% for sec in sectors %}
+                                    <option value="{{ sec[0] }}">{{ sec[1] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <label class="fw-bold text-muted">Ramais que serão afetados:</label>
+                        <div class="p-2 bg-light border rounded">
+                            {% for id in ids %}
+                                <span class="badge bg-secondary me-1">{{ id }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="/ramais" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Aplicar Alterações
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
