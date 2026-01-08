@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white pt-4 pb-0 border-0">
+                    <h4 style="color: #455a64;"><i class="fas fa-user-plus"></i> Novo Ramal</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('ramais.criar') }}" method="POST">
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Número do Ramal (ID)</label>
+                            <input type="number" class="form-control" name="extension" placeholder="Ex: 1000" required>
+                            <small class="text-muted">Este será o ID único e número de discagem.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nome de Exibição (CallerID)</label>
+                            <input type="text" class="form-control" name="name" placeholder="Ex: Vendas - João" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tecnologia</label>
+                            <select class="form-select" name="technology">
+                                <option value="pjsip">PJSIP</option>
+                                <option value="sip">SIP</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Transporte PJSIP</label>
+                            <select class="form-select" name="transport">
+                                <option value="transport-UDP" selected>UDP (Padrão)</option>
+                                <option value="transport-TCP">TCP</option>
+                                <option value="transport-TLS">TLS</option>
+                                <option value="transport-WS">WS</option>
+                                <option value="transport-WSS">WSS</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contexto</label>
+                            <select class="form-select" name="context_id" required>
+                                {% for ctx in contexts %}
+                                    <option value="{{ ctx['id'] }}">{{ ctx['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Senha</label>
+                            <input type="text" class="form-control" name="secret" placeholder="Senha segura" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Setor</label>
+                            <select class="form-select" name="sectors_id">
+                                <option value="">-- Nenhum --</option>
+                                {% for sec in sectors %}
+                                    <option value="{{ sec['id'] }}">{{ sec['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn text-white" style="background-color: #455a64;">
+                                <i class="fas fa-check-circle"></i> Criar Ramal
+                            </button>
+                            <a href="{{ url_for('ramais.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
