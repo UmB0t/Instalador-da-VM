@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white pt-4 pb-0 border-0">
+                    <h4 style="color: #455a64;"><i class="fas fa-edit"></i> Editar Ramal</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ url_for('ramais.editar') }}" method="POST">
+                        
+                        <input type="hidden" name="extension" value="{{ ramal.extension }}">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Número do Ramal (ID)</label>
+                            <input type="text" class="form-control" value="{{ ramal.extension }}" disabled>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nome de Exibição (CallerID)</label>
+                            <input type="text" class="form-control" name="name" value="{{ ramal.name }}" required>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col">
+                                <label class="form-label fw-bold">Tecnologia</label>
+                                <select class="form-select" name="technology">
+                                    <option value="pjsip" {% if ramal.technology|lower == 'pjsip' %}selected{% endif %}>PJSIP</option>
+                                    <option value="sip" {% if ramal.technology|lower == 'sip' %}selected{% endif %}>SIP Legacy</option>
+                                </select>
+                            </div>
+                            <div class="col">
+                                <label class="form-label fw-bold">Transporte PJSIP</label>
+                                <select class="form-select" name="transport">
+                                    <option value="transport-UDP" {% if ramal.transport == 'transport-UDP' %}selected{% endif %}>UDP</option>
+                                    <option value="transport-TCP" {% if ramal.transport == 'transport-TCP' %}selected{% endif %}>TCP</option>
+                                    <option value="transport-TLS" {% if ramal.transport == 'transport-TLS' %}selected{% endif %}>TLS</option>
+                                    <option value="transport-WS" {% if ramal.transport == 'transport-WS' %}selected{% endif %}>WS (WebRTC)</option>
+                                    <option value="transport-WSS" {% if ramal.transport == 'transport-WSS' %}selected{% endif %}>WSS</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Contexto</label>
+                            <select class="form-select" name="ctx_id">
+                                <option value="">-- Nenhum --</option>
+                                {% for ctx in contexts %}
+                                    <option value="{{ ctx['id'] }}" {% if ramal.context_id == ctx['id'] %}selected{% endif %}>{{ ctx['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Senha</label>
+                            <input type="text" class="form-control" name="secret" value="{{ ramal.secret }}" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Setor</label>
+                            <select class="form-select" name="sec_id">
+                                <option value="">-- Nenhum --</option>
+                                {% for sec in sectors %}
+                                    <option value="{{ sec['id'] }}" {% if ramal.sectors_id == sec['id'] %}selected{% endif %}>{{ sec['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('ramais.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                            <button type="submit" class="btn text-white" style="background-color: #455a64;">
+                                <i class="fas fa-save"></i> Salvar Alterações
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
