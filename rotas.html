@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar para Configurações">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h3 class="mb-0" style="color: #455a64;"><i class="fas fa-random"></i> Rotas Internas</h3>
+            </div>
+            
+            <div class="input-group shadow-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Buscar rota..." onkeyup="filtrarTabela()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaDados">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3 ps-4">Discagem (Padrão)</th>
+                                <th class="py-3 text-center">Tipo</th>
+                                <th class="py-3">Destino</th>
+                                <th class="py-3 text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in rotas %}
+                            <tr>
+                                <td class="py-3 ps-4 fw-bold text-dark">{{ r.dialing }}</td>
+                                <td class="py-3 text-center">
+                                    {% if r.type == 'ramal' %}
+                                        <span class="badge text-white" style="background-color: #0d6efd !important;">Ramal</span>
+                                    {% elif r.type == 'ramal_generico' %}
+                                        <span class="badge bg-dark text-white">Genérico</span>
+                                    {% else %}
+                                        <span class="badge text-dark" style="background-color: #ffc107 !important;">Fila</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3">
+                                    {% if r.type == 'ramal_generico' %}
+                                        <em class="text-muted">Dinâmico (${EXTEN})</em>
+                                    {% else %}
+                                        {{ r.destination }}
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-end pe-4">
+                                    <a href="{{ url_for('rotas.editar', id=r.id) }}" class="btn btn-sm text-white border-0 shadow-sm" 
+                                       style="background-color: #0d6efd !important; margin-right: 5px;" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('rotas.excluir', id=r.id) }}" class="btn btn-sm text-white border-0 shadow-sm" 
+                                       style="background-color: #dc3545 !important;"
+                                       onclick="return confirm('Excluir esta rota?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white pt-3 border-0">
+                <h5 class="fw-bold" style="color: #455a64;">
+                    {% if edit_obj %} <i class="fas fa-edit"></i> Editar Rota {% else %} <i class="fas fa-plus-circle"></i> Nova Rota {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{% if edit_obj %}{{ url_for('rotas.salvar_edicao') }}{% else %}{{ url_for('rotas.index') }}{% endif %}" method="POST">
+                    
+                    {% if edit_obj %} <input type="hidden" name="id_rota" value="{{ edit_obj.id }}"> {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Número Discado</label>
+                        <input type="text" class="form-control" name="dialing" placeholder="Ex: 1000 ou _100X" value="{{ edit_obj.dialing if edit_obj else '' }}" required>
+                        </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Tipo de Destino</label>
+                        <select class="form-select" name="type" id="tipoSelect" onchange="alternarDestino()">
+                            <option value="ramal" {% if edit_obj and edit_obj.type == 'ramal' %}selected{% endif %}>Enviar para Ramal Específico</option>
+                            <option value="ramal_generico" {% if edit_obj and edit_obj.type == 'ramal_generico' %}selected{% endif %}>Ramal Genérico (Range)</option>
+                            <option value="fila" {% if edit_obj and edit_obj.type == 'fila' %}selected{% endif %}>Enviar para Fila</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="divRamal">
+                        <label class="form-label fw-bold">Destino (Ramal)</label>
+                        <select class="form-select" name="destination_ramal" id="selectRamal">
+                            <option value="">-- Selecione o Ramal --</option>
+                            {% for ramal in ramais %}
+                                <option value="{{ ramal.extension }}" {% if edit_obj and edit_obj.type == 'ramal' and edit_obj.destination == ramal.extension %}selected{% endif %}>
+                                    {{ ramal.extension }} - {{ ramal.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3 d-none" id="divFila">
+                        <label class="form-label fw-bold">Nome da Fila</label>
+                        <select class="form-select" name="destination_fila" id="selectFila">
+                            <option value="">-- Selecione a Fila --</option>
+                            {% for fila in filas %}
+                                <option value="{{ fila.name }}" {% if edit_obj and edit_obj.type == 'fila' and edit_obj.destination == fila.name %}selected{% endif %}>
+                                    {{ fila.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <input type="hidden" name="destination" id="finalDestination">
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn text-white" style="background-color: #455a64;" onclick="prepararEnvio()">Salvar Rota</button>
+                        {% if edit_obj %}
+                            <a href="{{ url_for('rotas.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function alternarDestino() {
+        var tipo = document.getElementById('tipoSelect').value;
+        var divRamal = document.getElementById('divRamal');
+        var divFila = document.getElementById('divFila');
+
+        if (tipo === 'ramal') {
+            divRamal.classList.remove('d-none');
+            divFila.classList.add('d-none');
+        } else if (tipo === 'fila') {
+            divRamal.classList.add('d-none');
+            divFila.classList.remove('d-none');
+        } else {
+            // Ramal Genérico - Some tudo
+            divRamal.classList.add('d-none');
+            divFila.classList.add('d-none');
+        }
+    }
+
+    function prepararEnvio() {
+        var tipo = document.getElementById('tipoSelect').value;
+        var finalDest = document.getElementById('finalDestination');
+        
+        if (tipo === 'ramal') {
+            finalDest.value = document.getElementById('selectRamal').value;
+        } else if (tipo === 'fila') {
+            finalDest.value = document.getElementById('selectFila').value;
+        } else {
+            // Generico - Valor simbólico para não quebrar o banco (NOT NULL)
+            finalDest.value = 'GENERICO';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        alternarDestino();
+    });
+
+    function filtrarTabela() {
+        var input = document.getElementById("searchInput");
+        var filtro = input.value.toUpperCase();
+        var tabela = document.getElementById("tabelaDados");
+        var tr = tabela.getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            var linha = tr[i];
+            var texto = linha.textContent || linha.innerText;
+            if (texto.toUpperCase().indexOf(filtro) > -1) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}
