@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Monitoramento de Ramais{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2 text-dark"><i class="fas fa-desktop"></i> Monitoramento em Tempo Real</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <span class="text-muted small">
+                <i class="fas fa-circle text-success fa-xs" id="status-indicador"></i> 
+                Sistema Online
+            </span>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="count-total">{{ resumo.total }}</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-users fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-success shadow h-100 py-2" style="border-left: 5px solid #198754;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Livres</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="count-online">{{ resumo.online }}</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-check-circle fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-danger shadow h-100 py-2" style="border-left: 5px solid #dc3545;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Ocupados</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="count-falando">{{ resumo.falando }}</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-phone-volume fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-left-secondary shadow h-100 py-2" style="border-left: 5px solid #6c757d;">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">Offline</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="count-indisponivel">{{ resumo.indisponivel }}</div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-ban fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="mb-4">
+
+    <div class="row" id="grid-ramais">
+        {% for ramal in ramais %}
+            <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 card-ramal" id="card-{{ ramal.extension }}">
+                <div class="card shadow h-100 py-2 position-relative" style="border-left: 5px solid #6c757d;">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col">
+                                <div class="h4 mb-0 font-weight-bold text-dark">{{ ramal.extension }}</div>
+                                <div class="text-xs font-weight-bold text-muted text-uppercase mb-2 text-truncate" style="max-width: 150px;">
+                                    {{ ramal.name }}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary badge-status">OFFLINE</span>
+                                    <span class="badge bg-light text-dark border border-secondary" style="font-size: 0.7em;">
+                                        {{ ramal.technology|upper }}
+                                    </span>
+                                </div>
+                                
+                                <div class="mt-2 pt-2 border-top">
+                                    <div class="text-xs font-weight-bold text-uppercase text-muted mb-0">Tempo no Status:</div>
+                                    <div class="h6 mb-1 font-weight-bold text-dark duration-timer" data-start="{{ ramal.last_update_iso or '' }}">
+                                        --:--:--
+                                    </div>
+                                    <div class="text-xs text-muted">
+                                        <i class="far fa-calendar-alt"></i> <span class="last-update-str">{{ ramal.last_update }}</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                            <div class="col-auto" style="position: absolute; right: 15px; top: 15px;">
+                                <i class="fas fa-ban fa-2x text-secondary icon-status" style="opacity: 0.2;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function formatDuration(seconds) {
+        if (isNaN(seconds) || seconds < 0) return "--:--:--";
+        const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
+        const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+        const s = Math.floor(seconds % 60).toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    function updateTimers() {
+        const timers = document.querySelectorAll('.duration-timer');
+        const now = new Date();
+        
+        timers.forEach(timer => {
+            const startStr = timer.getAttribute('data-start');
+            if (startStr) {
+                const startDate = new Date(startStr);
+                const diffSeconds = Math.floor((now - startDate) / 1000);
+                timer.innerText = formatDuration(diffSeconds);
+            } else {
+                timer.innerText = "--:--:--";
+            }
+        });
+    }
+
+    function fetchApiData() {
+        fetch('/admin/api/dados_tempo_real')
+            .then(response => response.json())
+            .then(data => {
+                // Atualiza Resumo
+                document.getElementById('count-total').innerText = data.resumo.total;
+                document.getElementById('count-online').innerText = data.resumo.online;
+                document.getElementById('count-falando').innerText = data.resumo.falando;
+                document.getElementById('count-indisponivel').innerText = data.resumo.indisponivel;
+
+                // Atualiza Cards
+                data.ramais.forEach(ramal => {
+                    const card = document.getElementById(`card-${ramal.extension}`);
+                    if (card) {
+                        let colorClass = 'secondary';
+                        let borderColor = '#6c757d';
+                        let iconClass = 'fa-ban';
+                        let statusText = 'OFFLINE';
+
+                        if (['Idle', 'Not in use'].includes(ramal.status)) {
+                            colorClass = 'success';
+                            borderColor = '#198754';
+                            iconClass = 'fa-check';
+                            statusText = 'LIVRE';
+                        } else if (['Busy', 'In use', 'Ringing'].includes(ramal.status)) {
+                            colorClass = 'danger';
+                            borderColor = '#dc3545';
+                            iconClass = 'fa-phone';
+                            statusText = 'OCUPADO';
+                        } else if (!['Unavailable', 'Offline'].includes(ramal.status)) {
+                            colorClass = 'warning';
+                            borderColor = '#ffc107';
+                            iconClass = 'fa-exclamation-triangle';
+                            statusText = ramal.status;
+                        }
+
+                        card.querySelector('.card').style.borderLeft = `5px solid ${borderColor}`;
+                        
+                        const badge = card.querySelector('.badge-status');
+                        badge.className = `badge bg-${colorClass} badge-status`;
+                        badge.innerText = statusText;
+
+                        const icon = card.querySelector('.icon-status');
+                        icon.className = `fas ${iconClass} fa-2x text-${colorClass} icon-status`;
+
+                        // Atualiza Timer (data ISO)
+                        const timerDiv = card.querySelector('.duration-timer');
+                        if (ramal.last_update_iso && timerDiv.getAttribute('data-start') !== ramal.last_update_iso) {
+                            timerDiv.setAttribute('data-start', ramal.last_update_iso);
+                        }
+                        
+                        // Atualiza Data Estática (String)
+                        const dateStrDiv = card.querySelector('.last-update-str');
+                        dateStrDiv.innerText = ramal.last_update || '-';
+                    }
+                });
+            })
+            .catch(error => console.error('Erro API:', error));
+    }
+
+    setInterval(fetchApiData, 1500);
+    setInterval(updateTimers, 1000);
+    fetchApiData();
+</script>
+{% endblock %}
