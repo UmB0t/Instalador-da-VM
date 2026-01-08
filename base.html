@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ settings.site_name }}</title>
+    
+    {% if settings.favicon %}
+    <link rel="icon" href="{{ url_for('static', filename=settings.favicon) }}" type="image/x-icon">
+    {% endif %}
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: {{ settings.primary_color }};
+            --sidebar-bg: {{ settings.sidebar_bg }};
+            --sidebar-text: {{ settings.sidebar_text }};
+            --sidebar-width: 260px;
+            --topbar-height: 70px;
+        }
+
+        body { 
+            background-color: #f4f6f9; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            border-right: 1px solid #e0e0e0;
+            z-index: 1000;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-link {
+            height: var(--topbar-height);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-size: 1.4rem;
+            font-weight: bold;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .brand-link:hover { color: var(--primary-color); opacity: 0.8; }
+
+        .sidebar-menu {
+            padding: 10px 0;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Estilo dos Links do Menu */
+        .nav-link {
+            color: var(--sidebar-text);
+            padding: 12px 20px;
+            font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0.8;
+        }
+        .nav-link:hover { 
+            color: var(--primary-color); 
+            background-color: rgba(0,0,0,0.05);
+            opacity: 1;
+        }
+        /* O estado active é baseado em se a rota ou sub-rota de configuração está ativa */
+        .nav-link.active {
+            color: var(--primary-color);
+            background-color: rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary-color);
+            opacity: 1;
+        }
+        
+        .nav-link i.menu-icon { margin-right: 10px; width: 20px; text-align: center; }
+        
+        /* Submenus */
+        .submenu { background-color: rgba(0,0,0,0.02); list-style: none; padding-left: 0; }
+        .submenu .nav-link { padding-left: 50px; font-size: 0.95em; }
+
+        /* --- MAIN CONTENT WRAPPER --- */
+        .main-wrapper {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- TOPBAR --- */
+        .topbar {
+            height: var(--topbar-height);
+            background-color: var(--primary-color);
+            color: #fff;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .user-profile-dropdown .dropdown-toggle {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #fff !important;
+            cursor: pointer;
+        }
+        
+        /* Avatar invertido */
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: #fff; 
+            color: var(--primary-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2em;
+            margin-right: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .user-info { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center;
+            margin-right: 15px; 
+            text-align: right; 
+        }
+        .user-name { font-weight: 600; font-size: 1rem; color: #fff; }
+
+        .content-body { padding: 30px; }
+        
+        /* Classes utilitárias */
+        .text-primary { color: var(--primary-color) !important; }
+        .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-primary:hover { opacity: 0.9; background-color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-outline-primary { color: var(--primary-color); border-color: var(--primary-color); }
+        .btn-outline-primary:hover { background-color: var(--primary-color); color: #fff; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <a href="{{ url_for('index') }}" class="brand-link">
+            {% if settings.logo %}
+                <img src="{{ url_for('static', filename=settings.logo) }}" alt="Logo" style="max-height: 50px; max-width: 100%;">
+            {% else %}
+                <i class="fas fa-asterisk me-2"></i> {{ settings.site_name }}
+            {% endif %}
+        </a>
+
+        <div class="sidebar-menu">
+            <ul class="nav flex-column">
+                
+                <li class="nav-item">
+                    <a class="nav-link" data-bs-toggle="collapse" href="#menuDashboard">
+                        <span><i class="fas fa-tachometer-alt menu-icon"></i> Dashboard</span>
+                        <i class="fas fa-chevron-down small"></i>
+                    </a>
+                    <div class="collapse {% if request.path == url_for('index') %}show{% endif %}" id="menuDashboard">
+                        <ul class="submenu">
+                            <li><a href="{{ url_for('index') }}" class="nav-link {% if request.path == url_for('index') %}active{% endif %}">Aba Inicial</a></li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-toggle="collapse" href="#menuAdmin">
+                        <span><i class="fas fa-briefcase menu-icon"></i> Administrativo</span>
+                        <i class="fas fa-chevron-down small"></i>
+                    </a>
+                    <div class="collapse {% if 'admin' in request.path %}show{% endif %}" id="menuAdmin">
+                        <ul class="submenu">
+                            <li>
+                                <a href="{{ url_for('admin_monitor.monitoramento') }}" class="nav-link {% if 'monitoramento' in request.path and 'troncos' not in request.path and 'filas' not in request.path %}active{% endif %}">
+                                    Ramais
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin_monitor.monitoramento_troncos_page') }}" class="nav-link {% if 'monitoramento_troncos' in request.path %}active{% endif %}">
+                                    Entroncamentos
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ url_for('admin_monitor.monitoramento_filas_page') }}" class="nav-link {% if 'monitoramento_filas' in request.path %}active{% endif %}">
+                                    Monitoramento de Filas
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link collapsed" data-bs-toggle="collapse" href="#menuRelatorios">
+                        <span><i class="fas fa-chart-bar menu-icon"></i> Relatórios</span>
+                        <i class="fas fa-chevron-down small"></i>
+                    </a>
+                    <div class="collapse {% if 'relatorios' in request.path %}show{% endif %}" id="menuRelatorios">
+                        <ul class="submenu">
+                            <li>
+                                <a href="{{ url_for('relatorios.index') }}" class="nav-link {% if 'relatorios' in request.path %}active{% endif %}">
+                                    Chamadas
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li class="nav-item">
+                    <a href="{{ url_for('config.index') }}" 
+                       class="nav-link {% if 'config' in request.path or 'cadastros' in request.path or 'ramais' in request.path or 'layout' in request.path or 'auth' in request.path or ('filas' in request.path and 'monitoramento' not in request.path) or 'rotas' in request.path or ('troncos' in request.path and 'monitoramento' not in request.path) %}active{% endif %}">
+                        <span><i class="fas fa-cogs menu-icon"></i> Configurações</span>
+                    </a>
+                </li>
+                
+            </ul>
+        </div>
+        
+        <div class="p-3 border-top">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger w-100 btn-sm">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </div>
+    </nav>
+
+    <div class="main-wrapper">
+        <header class="topbar">
+            <div class="dropdown user-profile-dropdown">
+                <a class="dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <div class="user-info d-none d-md-block">
+                        <span class="user-name">{{ current_user.name }}</span>
+                    </div>
+                    <div class="user-avatar">
+                        {{ current_user.name[0] | upper }}
+                    </div>
+                </a>
+
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li><h6 class="dropdown-header">Minha Conta</h6></li>
+                    <li>
+                        <a class="dropdown-item" href="/alterar_senha"> 
+                            <i class="fas fa-key me-2 text-muted"></i> Alterar Senha
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="fas fa-sign-out-alt me-2"></i> Sair do Sistema
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </header>
+
+        <div class="content-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
