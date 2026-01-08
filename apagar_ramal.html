@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card border-danger shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirmação de Exclusão</h5>
+            </div>
+            <div class="card-body text-center p-5">
+                <h3 class="text-danger mb-3">Tem certeza?</h3>
+                <p class="lead">Você está prestes a remover permanentemente o ramal:</p>
+                
+                <div class="alert alert-light border d-inline-block px-5 py-3">
+                    <h1 class="display-4 fw-bold">{{ ramal_id }}</h1>
+                </div>
+                
+                <p class="text-muted mt-3">Essa ação não poderá ser desfeita e o ramal parará de funcionar imediatamente.</p>
+
+                <div class="mt-4 d-flex justify-content-center gap-3">
+                    <a href="/ramais" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                    
+                    <form action="/confirmar_exclusao_ramal" method="POST">
+                        <input type="hidden" name="ramal" value="{{ ramal_id }}">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-trash-alt"></i> Sim, Apagar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
