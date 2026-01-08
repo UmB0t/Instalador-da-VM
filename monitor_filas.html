@@ -1,0 +1,338 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Grid de Agentes */
+    .agent-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); 
+        gap: 10px;
+        margin-top: 15px;
+        margin-bottom: 20px; /* Espaço extra abaixo dos agentes agora */
+    }
+    
+    /* Card Base Agente */
+    .agent-box {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border: none;
+        color: white;
+        font-size: 0.85rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .agent-box:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.15); filter: brightness(0.95); }
+    
+    /* --- CORES (Matte/Fosco) --- */
+    .status-livre, .bg-livre { background-color: #198754; color: white; }
+    .status-ocupado, .bg-ocupado { background-color: #dc3545; color: white; }
+    .status-pausa, .bg-pausa { background-color: #0dcaf0; color: #212529; } /* Azul */
+    .status-chamando, .bg-chamando { background-color: #ffc107; color: #212529; } /* Amarelo */
+    .status-indisponivel, .bg-indisponivel { background-color: #6c757d; color: white; }
+
+    /* Elementos do Card de Agente */
+    .agent-card-body { padding: 8px 5px; } 
+    .agent-icon { font-size: 1.4rem; margin-bottom: 3px; opacity: 0.95; }
+    .agent-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+    
+    .status-timer-row { display: flex; justify-content: center; align-items: center; gap: 6px; margin-bottom: 5px; }
+    .status-text { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.9; }
+    
+    .timer-badge {
+        background-color: rgba(0, 0, 0, 0.2);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-family: 'Courier New', monospace;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+    .calls-badge {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 10px;
+        background-color: rgba(255, 255, 255, 0.25);
+        color: inherit;
+        display: inline-block;
+    }
+
+    /* MINI KPI CARDS */
+    .mini-kpi {
+        text-align: center;
+        padding: 8px 4px;
+        border-radius: 6px;
+        color: white;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .mini-kpi-val { font-size: 1.4rem; font-weight: 800; line-height: 1; }
+    .mini-kpi-label { font-size: 0.65rem; text-transform: uppercase; font-weight: 600; opacity: 0.9; margin-top: 2px; }
+    .mini-kpi-icon { font-size: 0.9rem; opacity: 0.7; margin-bottom: 2px; display: block; }
+
+    .queue-stats-box { text-align: center; padding: 8px; border-radius: 8px; color: white; }
+    .btn-header { font-size: 1rem; padding: 6px 12px; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3 style="color: #455a64;"><i class="fas fa-desktop"></i> Wallboard de Filas</h3>
+    <div class="d-flex align-items-center">
+        <select id="filtroFila" class="form-select me-3 shadow-sm" onchange="renderizarFilas()" style="width: 250px;">
+            <option value="all">Todas as Filas</option>
+            {% for f in filas_db %}
+                <option value="{{ f }}">{{ f }}</option>
+            {% endfor %}
+        </select>
+        <span class="badge bg-success"><i class="fas fa-circle fa-fade small me-1"></i> Tempo Real</span>
+    </div>
+</div>
+
+<div id="queues-container" class="row g-4">
+    <div class="col-12 text-center py-5"><div class="spinner-border text-primary"></div></div>
+</div>
+
+<div class="modal fade" id="agentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title fw-bold" id="modalAgentName">Agente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body d-grid gap-2 p-3">
+                <input type="hidden" id="modalAgentInterface">
+                <input type="hidden" id="modalAgentQueue">
+                <input type="hidden" id="modalAgentPaused">
+                <button class="btn btn-info btn-sm fw-bold text-white" id="btnPause" onclick="togglePause()">
+                    <i class="fas fa-pause me-1"></i> <span>Pausar</span>
+                </button>
+                <button class="btn btn-danger btn-sm fw-bold" onclick="removeAgent()">
+                    <i class="fas fa-sign-out-alt me-1"></i> Remover
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addAgentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-2">
+                <h5 class="modal-title fw-bold">Logar na Fila: <span id="addModalQueueName" class="text-primary"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3">
+                <input type="hidden" id="addQueueName">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Selecione o Agente</label>
+                    <select class="form-select select-sm" id="selectRamal">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-success btn-sm fw-bold" onclick="confirmAddAgent()">
+                        <i class="fas fa-check-circle me-1"></i> Logar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let queuesData = {};
+
+    function formatDuration(startTime) {
+        if (!startTime || startTime == 0) return "00:00";
+        const now = Date.now() / 1000;
+        let diff = Math.floor(now - startTime);
+        if (diff < 0) diff = 0;
+        const hours = Math.floor(diff / 3600);
+        const minutes = Math.floor((diff % 3600) / 60);
+        const seconds = diff % 60;
+        const fM = String(minutes).padStart(2, '0');
+        const fS = String(seconds).padStart(2, '0');
+        if (hours > 0) return `${hours}:${fM}:${fS}`;
+        return `${fM}:${fS}`;
+    }
+
+    function updateQueues() {
+        if (document.querySelector('.modal.show')) return;
+        fetch('/admin/api/filas_tempo_real')
+            .then(r => r.json()).then(d => { queuesData = d; renderizarFilas(); })
+            .catch(e => console.error(e));
+    }
+
+    function renderizarFilas() {
+        const container = document.getElementById('queues-container');
+        const filtro = document.getElementById('filtroFila').value;
+        let keys = Object.keys(queuesData);
+        if (keys.length === 0) { container.innerHTML = `<div class="col-12 text-center text-muted small">Sem filas ativas.</div>`; return; }
+        if (filtro !== 'all') keys = keys.filter(k => k === filtro);
+        let html = '';
+        keys.sort().forEach(key => { html += criarPainelFila(queuesData[key]); });
+        container.innerHTML = html;
+    }
+
+    function criarPainelFila(q) {
+        let calls = parseInt(q.calls) || 0;
+        let agentsHtml = '';
+        
+        let countLivre = 0;
+        let countOcupado = 0;
+        let countPausa = 0;
+        let countChamando = 0;
+
+        if (q.members) {
+            q.members.forEach(m => {
+                let stClass = 'status-indisponivel';
+                let stIcon = 'user-slash';
+                let st = parseInt(m.status);
+                let paused = (m.paused == '1');
+                let statusText = "OFF";
+
+                if (paused) {
+                    stClass = 'status-pausa'; stIcon = 'pause'; statusText = "PAUSA";
+                    countPausa++;
+                } else if (st === 1) {
+                    stClass = 'status-livre'; stIcon = 'check'; statusText = "LIVRE";
+                    countLivre++;
+                } else if (st === 2 || st === 3) {
+                    stClass = 'status-ocupado'; stIcon = 'headset'; statusText = "OCUPADO";
+                    countOcupado++;
+                } else if (st === 6) {
+                    stClass = 'status-chamando'; stIcon = 'bell'; statusText = "CHAMANDO";
+                    countChamando++;
+                }
+
+                let displayName = m.membername || m.interface;
+                let cleanName = displayName.replace(/^PJSIP\//, '').replace(/^SIP\//, '');
+                let timeBadge = formatDuration(m.state_timestamp);
+
+                agentsHtml += `
+                    <div class="card agent-box ${stClass}" onclick="openAgentModal('${m.interface}', '${q.name}', '${displayName}', ${paused})">
+                        <div class="card-body agent-card-body text-center">
+                            <i class="fas fa-${stIcon} agent-icon"></i>
+                            <div class="agent-name" title="${displayName}">${cleanName}</div>
+                            
+                            <div class="status-timer-row">
+                                <span class="status-text">${statusText}</span>
+                                <span class="timer-badge"><i class="fas fa-clock fa-xs me-1 opacity-50"></i>${timeBadge}</span>
+                            </div>
+
+                            <div class="calls-badge" title="Chamadas Atendidas">
+                                <i class="fas fa-check fa-xs me-1"></i> ${m.calls_taken}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        return `
+        <div class="col-12">
+            <div class="card shadow-sm border-0 mb-3">
+                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 fw-bold border-start border-4 border-primary ps-2">${q.name}</h6>
+                    <div class="d-flex gap-2 align-items-center">
+                        <span class="badge bg-danger btn-header fw-normal"><i class="fas fa-users small me-1"></i> ${calls}</span>
+                        <button class="btn btn-sm btn-outline-primary fw-bold px-3" onclick="openAddModal('${q.name}')">
+                            <i class="fas fa-user-plus small me-1"></i> Login
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body bg-light p-3">
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-3"><div class="mini-kpi bg-livre"><i class="fas fa-check-circle mini-kpi-icon"></i><div class="mini-kpi-val">${countLivre}</div><div class="mini-kpi-label">Livres</div></div></div>
+                        <div class="col-3"><div class="mini-kpi bg-ocupado"><i class="fas fa-headset mini-kpi-icon"></i><div class="mini-kpi-val">${countOcupado}</div><div class="mini-kpi-label">Ocupados</div></div></div>
+                        <div class="col-3"><div class="mini-kpi bg-chamando"><i class="fas fa-phone-volume mini-kpi-icon"></i><div class="mini-kpi-val">${countChamando}</div><div class="mini-kpi-label">Chamando</div></div></div>
+                        <div class="col-3"><div class="mini-kpi bg-pausa"><i class="fas fa-pause-circle mini-kpi-icon"></i><div class="mini-kpi-val">${countPausa}</div><div class="mini-kpi-label">Pausa</div></div></div>
+                    </div>
+
+                    <div class="agent-grid">
+                        ${agentsHtml || '<div class="col-12 text-muted small p-2 text-center">Nenhum agente logado.</div>'}
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6 col-md-3">
+                            <div class="queue-stats-box bg-success p-2">
+                                <h5 class="m-0">${q.completed||0}</h5>
+                                <small style="font-size:0.7rem">Atendidas</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="queue-stats-box bg-danger p-2">
+                                <h5 class="m-0">${q.abandoned||0}</h5>
+                                <small style="font-size:0.7rem">Perdidas</small>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="bg-white p-2 rounded h-100 border d-flex align-items-center overflow-auto" style="max-height: 48px;">
+                                <small class="text-muted fw-bold me-2 flex-shrink-0">Fila:</small>
+                                <div class="d-flex gap-1">
+                                ${q.callers && q.callers.length > 0 ? 
+                                    q.callers.map(c => `<span class="badge bg-danger fw-normal"><i class="fas fa-phone fa-xs me-1"></i>${c.callerid} (${c.wait}s)</span>`).join('') 
+                                    : '<small class="text-muted fst-italic">Vazia</small>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    // FUNÇÕES MODAIS
+    function openAgentModal(interface, queue, name, isPaused) {
+        document.getElementById('modalAgentName').innerText = name.replace(/^PJSIP\//, '').replace(/^SIP\//, '');
+        document.getElementById('modalAgentInterface').value = interface;
+        document.getElementById('modalAgentQueue').value = queue;
+        document.getElementById('modalAgentPaused').value = isPaused;
+        const btnPause = document.getElementById('btnPause');
+        if (isPaused) { 
+            btnPause.innerHTML = '<i class="fas fa-play me-1"></i> <span>Despausar</span>'; 
+            btnPause.className = 'btn btn-success btn-sm fw-bold'; 
+        } else { 
+            btnPause.innerHTML = '<i class="fas fa-pause me-1"></i> <span>Pausar</span>'; 
+            btnPause.className = 'btn btn-info btn-sm fw-bold text-white'; 
+        }
+        new bootstrap.Modal(document.getElementById('agentModal')).show();
+    }
+    function togglePause() {
+        const interface = document.getElementById('modalAgentInterface').value;
+        const isPaused = document.getElementById('modalAgentPaused').value === 'true';
+        fetch('/monitor/pausar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ interface: interface, paused: !isPaused }) })
+        .then(() => { bootstrap.Modal.getInstance(document.getElementById('agentModal')).hide(); setTimeout(updateQueues, 200); });
+    }
+    function removeAgent() {
+        if(!confirm('Deslogar este agente?')) return;
+        const interface = document.getElementById('modalAgentInterface').value;
+        const queue = document.getElementById('modalAgentQueue').value;
+        fetch('/monitor/remover', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ interface: interface, queue: queue }) })
+        .then(() => { bootstrap.Modal.getInstance(document.getElementById('agentModal')).hide(); setTimeout(updateQueues, 200); });
+    }
+    function openAddModal(queueName) {
+        document.getElementById('addModalQueueName').innerText = queueName;
+        document.getElementById('addQueueName').value = queueName;
+        const select = document.getElementById('selectRamal');
+        select.innerHTML = '<option>Carregando...</option>';
+        fetch('/monitor/ramais').then(r => r.json()).then(ramais => {
+            let html = '<option value="">-- Selecione --</option>';
+            ramais.forEach(r => {
+                html += `<option value="${r.technology.toUpperCase()}/${r.extension}|${r.extension} - ${r.name}">${r.extension} - ${r.name}</option>`;
+            });
+            select.innerHTML = html;
+        });
+        new bootstrap.Modal(document.getElementById('addAgentModal')).show();
+    }
+    function confirmAddAgent() {
+        const queue = document.getElementById('addQueueName').value;
+        const selectedValue = document.getElementById('selectRamal').value;
+        if(!selectedValue) return alert("Selecione um ramal.");
+        const parts = selectedValue.split('|');
+        fetch('/monitor/adicionar', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ interface: parts[0], queue: queue, member_name: parts[1] }) })
+        .then(() => { bootstrap.Modal.getInstance(document.getElementById('addAgentModal')).hide(); setTimeout(updateQueues, 200); });
+    }
+    setInterval(updateQueues, 1000);
+    updateQueues();
+</script>
+{% endblock %}
