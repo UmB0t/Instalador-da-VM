@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block content %}
+<form method="POST" id="formMassa" action="{{ url_for('ramais.editar_massa_rota') }}">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar para Configurações">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h3 class="mb-0" style="color: #455a64;"><i class="fas fa-phone-alt"></i> Gerenciar Ramais</h3>
+        </div>
+        
+        <div class="d-flex gap-2 align-items-center">
+            
+            <div class="input-group shadow-sm me-2" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Pesquisar..." onkeyup="filtrarTabela()">
+            </div>
+
+            <button type="submit" class="btn btn-outline-danger shadow-sm" formaction="{{ url_for('ramais.excluir_massa') }}" onclick="return confirm('ATENÇÃO: Tem certeza que deseja excluir os ramais selecionados?')">
+                <i class="fas fa-trash"></i>
+            </button>
+
+            <button type="button" class="btn btn-outline-secondary shadow-sm" data-bs-toggle="modal" data-bs-target="#modalLote" title="Editar em Massa">
+                <i class="fas fa-edit"></i> Editar Lote
+            </button>
+            
+            <a href="{{ url_for('ramais.range_form') }}" class="btn btn-outline-primary shadow-sm" title="Criar Sequência de Ramais">
+                <i class="fas fa-layer-group"></i> Gerar Sequência
+            </a>
+
+            <a href="{{ url_for('ramais.novo_form') }}" class="btn text-white shadow-sm" style="background-color: #455a64;">
+                <i class="fas fa-plus"></i> Novo Ramal
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap" id="tabelaDados">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="py-3 ps-4" style="width: 50px;">
+                                <input type="checkbox" class="form-check-input" onclick="toggleAll(this)">
+                            </th>
+                            <th class="py-3">Ramal</th>
+                            <th class="py-3">CallerID</th>
+                            <th class="py-3">Senha</th>
+                            <th class="py-3 text-center">Tech</th>
+                            <th class="py-3">Contexto</th>
+                            <th class="py-3">Setor</th>
+                            <th class="py-3 text-center">Ações</th> 
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in ramais %}
+                        <tr>
+                            <td class="py-3 ps-4">
+                                <input type="checkbox" name="ids[]" value="{{ r.extension }}" class="form-check-input check-item">
+                            </td>
+                            <td class="py-3 fw-bold text-dark">{{ r.extension }}</td>
+                            <td class="py-3">{{ r.name }}</td>
+                            <td class="py-3 text-muted small">••••••</td>
+                            <td class="py-3 text-center">
+                                {% if 'pjsip' in r.technology|lower %}
+                                    <span class="badge text-white" style="background-color: #0d6efd !important;">PJSIP</span>
+                                {% else %}
+                                    <span class="badge text-dark" style="background-color: #0dcaf0 !important;">SIP</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">{{ r.context }}</td>
+                            <td class="py-3">{{ r.sector if r.sector else '-' }}</td>
+                            <td class="py-3 text-center">
+                                <a href="{{ url_for('ramais.editar_form', id=r.extension) }}" class="btn btn-primary border-0 px-3" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('ramais.excluir', id=r.extension) }}" class="btn btn-danger border-0 px-3 ms-1" title="Excluir"
+                                   onclick="return confirm('Apagar ramal {{ r.extension }}?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalLote" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edição em Massa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Selecione os campos que deseja alterar nos ramais marcados. Campos em branco não serão alterados.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tecnologia</label>
+                            <select name="technology" class="form-select">
+                                <option value="">(Não Alterar)</option>
+                                <option value="pjsip">PJSIP</option>
+                                <option value="sip">SIP Legacy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Transporte</label>
+                            <select name="transport" class="form-select">
+                                <option value="">(Não Alterar)</option>
+                                <option value="transport-udp">UDP</option>
+                                <option value="transport-tcp">TCP</option>
+                                <option value="transport-ws">WS (WebRTC)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Contexto</label>
+                            <select name="ctx_id" class="form-select">
+                                <option value="">(Não Alterar)</option>
+                                {% for ctx in contexts %}
+                                    <option value="{{ ctx['id'] }}">{{ ctx['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Setor</label>
+                            <select name="sec_id" class="form-select">
+                                <option value="">(Não Alterar)</option>
+                                {% for sec in sectors %}
+                                    <option value="{{ sec['id'] }}">{{ sec['name'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Aplicar Alterações</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</form>
+
+<script>
+    function toggleAll(source) {
+        checkboxes = document.getElementsByClassName('check-item');
+        for(var i=0, n=checkboxes.length;i<n;i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+
+    function filtrarTabela() {
+        var input = document.getElementById("searchInput");
+        var filtro = input.value.toUpperCase();
+        var tabela = document.getElementById("tabelaDados");
+        var tr = tabela.getElementsByTagName("tr");
+
+        for (var i = 1; i < tr.length; i++) {
+            var linha = tr[i];
+            var textoLinha = linha.textContent || linha.innerText;
+            if (textoLinha.toUpperCase().indexOf(filtro) > -1) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}
