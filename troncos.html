@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar para Configurações">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h3 class="mb-0" style="color: #455a64;"><i class="fas fa-network-wired"></i> Troncos VoIP</h3>
+            </div>
+            
+            <div class="input-group shadow-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Buscar tronco..." onkeyup="filtrarTabela()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaDados">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3 ps-4">Nome</th>
+                                <th class="py-3 text-center">Tech</th>
+                                <th class="py-3">Host / Operadora</th>
+                                <th class="py-3 text-center">Registro</th>
+                                <th class="py-3 text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in troncos %}
+                            <tr>
+                                <td class="py-3 ps-4 fw-bold text-dark">{{ t.name }}</td>
+                                <td class="py-3 text-center">
+                                    <span class="badge text-white" 
+                                          style="background-color: {% if t.technology=='pjsip' %}#0d6efd{% elif t.technology=='iax2' %}#6610f2{% else %}#198754{% endif %} !important;">
+                                        {{ t.technology|upper }}
+                                    </span>
+                                </td>
+                                <td class="py-3 text-muted">{{ t.host }}:{{ t.port }}</td>
+                                <td class="py-3 text-center">
+                                    {% if t.register %}
+                                        <span class="badge bg-success">Sim</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Não</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 text-end pe-4">
+                                    <a href="{{ url_for('troncos.editar', id=t.id) }}" class="btn btn-sm btn-outline-primary border-0 shadow-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('troncos.excluir', id=t.id) }}" class="btn btn-sm btn-outline-danger border-0 shadow-sm"
+                                       onclick="return confirm('Apagar tronco {{ t.name }}?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white pt-3 border-0">
+                <h5 class="fw-bold" style="color: #455a64;">
+                    {% if edit_obj %} <i class="fas fa-edit"></i> Editar Tronco {% else %} <i class="fas fa-plus-circle"></i> Novo Tronco {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('troncos.salvar') }}" method="POST">
+                    
+                    {% if edit_obj %} <input type="hidden" name="id_trunk" value="{{ edit_obj.id }}"> {% endif %}
+                    
+                    <h6 class="border-bottom pb-2 mb-3 text-muted">Configurações do Tronco (Peer)</h6>
+
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Nome (Sem espaços)</label>
+                            <input type="text" class="form-control" name="name" value="{{ edit_obj.name if edit_obj else '' }}" required placeholder="ex: vivo-fixo">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-bold small">Tecnologia</label>
+                            <select class="form-select" name="technology" id="techSelect" onchange="toggleTransport()">
+                                <option value="sip" {% if edit_obj and edit_obj.technology == 'sip' %}selected{% endif %}>SIP (Legacy)</option>
+                                <option value="pjsip" {% if edit_obj and edit_obj.technology == 'pjsip' %}selected{% endif %}>PJSIP (Novo)</option>
+                                <option value="iax2" {% if edit_obj and edit_obj.technology == 'iax2' %}selected{% endif %}>IAX2</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-2">
+                        <div class="col-8">
+                            <label class="form-label fw-bold small">Host (IP, Domínio ou 'dynamic')</label>
+                            <input type="text" class="form-control" name="host" 
+                                   value="{{ edit_obj.host if edit_obj else '' }}" 
+                                   required placeholder="sip.operadora.com ou dynamic">
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label fw-bold small">Porta</label>
+                            <input type="number" class="form-control" name="port" value="{{ edit_obj.port if edit_obj else '5060' }}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Usuário (Auth/Peer)</label>
+                        <input type="text" class="form-control" name="username" value="{{ edit_obj.username if edit_obj else '' }}" required>
+                    </div>
+
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small">Senha (Secret)</label>
+                        <input type="text" class="form-control" name="secret" value="{{ edit_obj.secret if edit_obj else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Contexto de Entrada</label>
+                        <input type="text" class="form-control" name="context" value="{{ edit_obj.context if edit_obj else 'ENTRADA_GERAL' }}" required>
+                    </div>
+
+                    <div class="mb-3 d-none" id="divTransport">
+                        <label class="form-label fw-bold small text-primary">Transporte (PJSIP)</label>
+                        <select class="form-select" name="transport">
+                            <option value="transport-UDP" {% if edit_obj and edit_obj.transport == 'transport-UDP' %}selected{% endif %}>UDP (Padrão)</option>
+                            <option value="transport-TCP" {% if edit_obj and edit_obj.transport == 'transport-TCP' %}selected{% endif %}>TCP</option>
+                        </select>
+                    </div>
+
+                    <div class="bg-light p-3 rounded border mb-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" name="register" id="checkReg" onchange="toggleRegisterFields()"
+                                   {% if edit_obj and edit_obj.register %}checked{% endif %}>
+                            <label class="form-check-label fw-bold" for="checkReg">Efetuar Registro (Register String)</label>
+                        </div>
+
+                        <div id="registerFields" class="d-none">
+                            <hr class="my-2">
+                            <small class="text-muted d-block mb-2">Preencha apenas se for diferente do usuário acima.</small>
+                            
+                            <div class="mb-2">
+                                <label class="form-label fw-bold small">Usuário de Registro</label>
+                                <input type="text" class="form-control form-control-sm" name="register_username" 
+                                       value="{{ edit_obj.register_username if edit_obj and edit_obj.register_username else '' }}" placeholder="Igual ao do tronco">
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label fw-bold small">Senha de Registro</label>
+                                <input type="text" class="form-control form-control-sm" name="register_secret" 
+                                       value="{{ edit_obj.register_secret if edit_obj and edit_obj.register_secret else '' }}" placeholder="Igual ao do tronco">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn text-white" style="background-color: #455a64;">
+                            <i class="fas fa-save"></i> Salvar Tronco
+                        </button>
+                        {% if edit_obj %}
+                            <a href="{{ url_for('troncos.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleTransport() {
+        var tech = document.getElementById('techSelect').value;
+        var div = document.getElementById('divTransport');
+        if (tech === 'pjsip') {
+            div.classList.remove('d-none');
+        } else {
+            div.classList.add('d-none');
+        }
+    }
+
+    function toggleRegisterFields() {
+        var check = document.getElementById('checkReg');
+        var fields = document.getElementById('registerFields');
+        if (check.checked) {
+            fields.classList.remove('d-none');
+        } else {
+            fields.classList.add('d-none');
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        toggleTransport();
+        toggleRegisterFields();
+    });
+
+    function filtrarTabela() {
+        var input = document.getElementById("searchInput");
+        var filtro = input.value.toUpperCase();
+        var rows = document.querySelectorAll("#tabelaDados tbody tr");
+        rows.forEach(row => {
+            row.style.display = row.textContent.toUpperCase().includes(filtro) ? "" : "none";
+        });
+    }
+</script>
+{% endblock %}
