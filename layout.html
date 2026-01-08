@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex align-items-center mb-4">
+            <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar para Configurações">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="lh-1">
+                <h3 class="mb-0 fw-bold" style="color: {{ settings.primary_color }};"><i class="fas fa-paint-brush"></i> Personalizar Layout</h3>
+                <small class="text-muted">Altere as cores, logomarca interna e a tela de login.</small>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                
+                <form action="{{ url_for('layout.index') }}" method="POST" enctype="multipart/form-data">
+                    
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">Geral e Cores</h6>
+                    <div class="row mb-4 align-items-end">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Nome do Sistema</label>
+                            <input type="text" class="form-control" name="site_name" value="{{ settings.site_name }}" required>
+                        </div>
+                        <div class="col-md-2 text-center mb-3">
+                            <label class="form-label fw-bold small">Cor Principal</label>
+                            <input type="color" class="form-control form-control-color mx-auto" name="primary_color" value="{{ settings.primary_color }}" title="Cor dos botões e destaques">
+                        </div>
+                        <div class="col-md-2 text-center mb-3">
+                            <label class="form-label fw-bold small">Fundo Menu</label>
+                            <input type="color" class="form-control form-control-color mx-auto" name="sidebar_bg" value="{{ settings.sidebar_bg }}">
+                        </div>
+                        <div class="col-md-2 text-center mb-3">
+                            <label class="form-label fw-bold small">Texto Menu</label>
+                            <input type="color" class="form-control form-control-color mx-auto" name="sidebar_text" value="{{ settings.sidebar_text }}">
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 border-bottom pb-2 mt-5">Imagens do Sistema</h6>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">Logo do Painel (Sidebar)</label>
+                            <input type="file" class="form-control mb-2" name="logo_file" accept="image/*">
+                            {% if settings.logo %}
+                            <div class="p-2 border rounded bg-light text-center">
+                                <img src="{{ url_for('static', filename=settings.logo) }}" style="max-height: 40px;">
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">Imagem de Destaque (Tela de Login)</label>
+                            <input type="file" class="form-control mb-2" name="login_image_file" accept="image/*">
+                            {% if settings.login_image %}
+                            <div class="p-2 border rounded bg-light text-center">
+                                <img src="{{ url_for('static', filename=settings.login_image) }}" style="max-height: 100px; max-width: 100%; object-fit: contain;">
+                            </div>
+                            {% else %}
+                            <small class="text-muted">Nenhuma imagem selecionada. O login ficará centralizado.</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-4">
+                            <label class="form-label fw-bold">Favicon (Ícone da Aba do Navegador)</label>
+                            <input type="file" class="form-control mb-2" name="favicon_file" accept="image/x-icon, image/png, image/svg+xml">
+                            {% if settings.favicon %}
+                            <div class="p-2 border rounded bg-light d-flex align-items-center">
+                                <img src="{{ url_for('static', filename=settings.favicon) }}" style="max-height: 32px; margin-right: 10px;">
+                                <small class="text-success">Favicon atual carregado.</small>
+                            </div>
+                            {% else %}
+                            <small class="text-muted">Nenhum favicon carregado. Será usado o ícone padrão do navegador.</small>
+                            {% endif %}
+                        </div>
+
+                    </div>
+
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn text-white fw-bold btn-lg" style="background-color: {{ settings.primary_color }};">
+                            <i class="fas fa-save"></i> Salvar Todas as Alterações
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
