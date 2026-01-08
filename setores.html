@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <a href="/config" class="btn btn-outline-secondary shadow-sm me-3" title="Voltar">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h3 class="mb-0" style="color: #455a64;"><i class="fas fa-sitemap"></i> Setores</h3>
+            </div>
+            
+            <div class="input-group shadow-sm" style="width: 250px;">
+                <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
+                <input type="text" id="searchInput" class="form-control border-start-0 ps-0" placeholder="Buscar setor..." onkeyup="filtrarTabela()">
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="tabelaDados">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="py-3 ps-4">Nome</th>
+                                <th class="py-3">Descrição</th>
+                                <th class="py-3 text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for setor in setores %}
+                            <tr>
+                                <td class="py-3 ps-4 fw-bold text-dark">{{ setor.name }}</td>
+                                <td class="py-3 text-muted">{{ setor.description }}</td>
+                                <td class="py-3 text-end pe-4">
+                                    <a href="{{ url_for('cadastros.setores_editar', id_setor=setor.id) }}" class="btn btn-sm text-white border-0 shadow-sm" 
+                                       style="background-color: #0d6efd !important; margin-right: 5px;">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('cadastros.setores_excluir', id_setor=setor.id) }}" class="btn btn-sm text-white border-0 shadow-sm" 
+                                       style="background-color: #dc3545 !important;"
+                                       onclick="return confirm('Excluir este setor?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white pt-3 border-0">
+                <h5 class="fw-bold" style="color: #455a64;">
+                    {% if edit_obj %} <i class="fas fa-edit"></i> Editar {% else %} <i class="fas fa-plus-circle"></i> Novo {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form action="{% if edit_obj %}{{ url_for('cadastros.setores_salvar') }}{% else %}{{ url_for('cadastros.setores_index') }}{% endif %}" method="POST">
+                    {% if edit_obj %} <input type="hidden" name="id_setor" value="{{ edit_obj.id }}"> {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do Setor</label>
+                        <input type="text" class="form-control" name="nome_setor" value="{{ edit_obj.name if edit_obj else '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Descrição</label>
+                        <textarea class="form-control" name="descricao_setor" rows="3">{{ edit_obj.description if edit_obj else '' }}</textarea>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn text-white" style="background-color: #455a64;">Salvar</button>
+                        {% if edit_obj %}
+                            <a href="{{ url_for('cadastros.setores_index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function filtrarTabela() {
+        var input = document.getElementById("searchInput");
+        var filtro = input.value.toUpperCase();
+        var tabela = document.getElementById("tabelaDados");
+        var tr = tabela.getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            var linha = tr[i];
+            var texto = linha.textContent || linha.innerText;
+            if (texto.toUpperCase().indexOf(filtro) > -1) {
+                linha.style.display = "";
+            } else {
+                linha.style.display = "none";
+            }
+        }
+    }
+</script>
+{% endblock %}
