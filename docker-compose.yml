@@ -1,15 +1,22 @@
-version: '3.8'
 services:
-  mongodb:
+  mongo_seguro:
     image: mongo:latest
     container_name: mongo_seguro
     restart: always
     environment:
-      MONGO_INITDB_ROOT_USERNAME: adm
-      MONGO_INITDB_ROOT_PASSWORD: "@Sam62dan"
-      MONGO_INITDB_DATABASE: asterisk_realtime
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: suasenha123
     ports:
-      - "29017:27017"
+      - "27017:27017"
     volumes:
-      - ./mongo_data:/data/db
-      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ./data:/data/db
+    networks:
+      - rede_mongo_fixa
+
+# AQUI ESTÁ A CORREÇÃO (O PULO DO GATO):
+networks:
+  rede_mongo_fixa:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.200.0.0/24
